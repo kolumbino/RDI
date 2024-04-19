@@ -1,31 +1,32 @@
 from flask import Flask, request, render_template
-import requests
+from newsapi import NewsApiClient
 import os
 from dotenv import load_dotenv
-load_dotenv()
 
+load_dotenv()
 
 app = Flask(__name__)
 
-
 API_KEY = os.getenv("NEWS_API_KEY")
-BASE_URL = "https://newsapi.org/v2/top-headlines"
+newsapi = NewsApiClient(api_key=API_KEY)
 
 
 @app.route('/')
 def index():
-    country = 'us'
-    response = requests.get(f"{BASE_URL}?country={country}&apiKey={API_KEY}")
-    articles = response.json().get('articles', [])
+    top_headlines = newsapi.get_top_headlines(country='us')
+    articles = top_headlines.get('articles', [])
     return render_template('index.html', articles=articles)
 
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
-    query = request.form.get('query')
-    response = requests.get(f"{BASE_URL}?q={query}&apiKey={API_KEY}")
-    articles = response.json().get('articles', [])
-    return render_template('search.html', articles=articles)
+    query = request.form.get('query', '')
+    if query:
+        all_articles = newsapi.get_everything(q=query)
+        articles = all_articles.get('articles', [])
+    else:
+        articles = []
+    return render_template('search.html', articles=articles, query=query)
 
 
 if __name__ == '__main__':
